@@ -14,3 +14,8 @@
 1. LCD에 나타날 항목 설정 (온도/습도)
 2. 온도의 경우 섭씨/화씨 변환 가능
 3. 습도가 N% 이상일 경우 LED 켜지게 설정 가능(N은 임의의 양수)
+
+
+## Reference
+https://webnautes.tistory.com/1137 (블루투스 코딩)
+https://www.instructables.com/Raspberry-PI-Multiple-I2c-Devices/ (I2C 관련)
