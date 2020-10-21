@@ -45,26 +45,24 @@ int main() {
 
   int gpio_4_value = 0;
   int color = 0;
-  while(1){
+  while (1) {
     get_gpio_input_value(gpio_ctr, 4, &gpio_4_value);
     if (!gpio_4_value) {
-      switch(color%3){
-        case 0:
-          set_led_blue(gpio_ctr);
-          break;
-        case 1:
-          set_led_red(gpio_ctr);
-          break;
-        case 2:
-          set_led_green(gpio_ctr);
-          break;
-
+      switch (color % 3) {
+      case 0:
+        set_led_blue(gpio_ctr);
+        break;
+      case 1:
+        set_led_red(gpio_ctr);
+        break;
+      case 2:
+        set_led_green(gpio_ctr);
+        break;
       }
       color++;
-            sleep(1);
-      gpio_4_value=0;
-    }
-    else{
+      sleep(1);
+      gpio_4_value = 0;
+    } else {
       continue;
     }
   }
