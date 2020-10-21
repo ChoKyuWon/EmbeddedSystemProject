@@ -47,7 +47,7 @@ int main() {
   int color = 0;
   while(1){
     get_gpio_input_value(gpio_ctr, 4, &gpio_4_value);
-    if (gpio_4_value) {
+    if (!gpio_4_value) {
       switch(color%3){
         case 0:
           set_led_blue(gpio_ctr);
@@ -58,9 +58,14 @@ int main() {
         case 2:
           set_led_green(gpio_ctr);
           break;
+
       }
       color++;
+            sleep(1);
       gpio_4_value=0;
+    }
+    else{
+      continue;
     }
   }
   munmap(gpio_ctr, 4096);
