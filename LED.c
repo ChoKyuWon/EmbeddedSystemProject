@@ -43,12 +43,25 @@ int main() {
   set_gpio_input(gpio_ctr, 4);
   set_gpio_pullup(gpio_ctr, 4);
 
-  int gpio_4_value;
-  get_gpio_input_value(gpio_ctr, 4, &gpio_4_value);
-  if (gpio_4_value) {
-    set_led_blue(gpio_ctr);
-  } else {
-    set_led_green(gpio_ctr);
+  int gpio_4_value = 0;
+  int color = 0;
+  while(1){
+    get_gpio_input_value(gpio_ctr, 4, &gpio_4_value);
+    if (gpio_4_value) {
+      switch(color%3){
+        case 0:
+          set_led_blue(gpio_ctr);
+          break;
+        case 1:
+          set_led_red(gpio_ctr);
+          break;
+        case 2:
+          set_led_green(gpio_ctr);
+          break;
+      }
+      color++;
+      gpio_4_value=0;
+    }
   }
   munmap(gpio_ctr, 4096);
   close(fdmem);
