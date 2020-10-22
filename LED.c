@@ -23,15 +23,18 @@ void set_led_green(void *);
 
 void get_gpio_input_value(void *, int, int *);
 
-int main() {
+int main()
+{
   int fdmem = open("/dev/mem", O_RDWR);
-  if (fdmem < 0) {
+  if (fdmem < 0)
+  {
     printf("Error openning /dev/mem\n");
     return -1;
   }
   void *gpio_ctr =
       mmap(0, 4096, PROT_READ + PROT_WRITE, MAP_SHARED, fdmem, GPIO_BASE);
-  if (gpio_ctr == MAP_FAILED) {
+  if (gpio_ctr == MAP_FAILED)
+  {
     printf("mmap failed\n");
     return -2;
   }
@@ -45,10 +48,13 @@ int main() {
 
   int gpio_4_value = 0;
   int color = 0;
-  while (1) {
+  while (1)
+  {
     get_gpio_input_value(gpio_ctr, 4, &gpio_4_value);
-    if (!gpio_4_value) {
-      switch (color % 3) {
+    if (!gpio_4_value)
+    {
+      switch (color % 3)
+      {
       case 0:
         set_led_blue(gpio_ctr);
         break;
@@ -62,7 +68,9 @@ int main() {
       color++;
       sleep(1);
       gpio_4_value = 0;
-    } else {
+    }
+    else
+    {
       continue;
     }
   }
@@ -70,15 +78,19 @@ int main() {
   close(fdmem);
 }
 
-void set_gpio_output_value(void *gpio_ctr, int gpio_nr, int value) {
+void set_gpio_output_value(void *gpio_ctr, int gpio_nr, int value)
+{
   int reg_id = gpio_nr / 32;
   int pos = gpio_nr % 32;
-  if (value) {
+  if (value)
+  {
 #define GPIO_SET_OFFSET 0x1c
     uint32_t *output_set =
         (u_int32_t *)(gpio_ctr + GPIO_SET_OFFSET + 0x4 * reg_id);
     *output_set = 0x1 << pos;
-  } else {
+  }
+  else
+  {
 #define GPIO_CLR_OFFSET 0x28
     uint32_t *output_clr =
         (uint32_t *)(gpio_ctr + GPIO_CLR_OFFSET + 0x4 * reg_id);
@@ -86,7 +98,8 @@ void set_gpio_output_value(void *gpio_ctr, int gpio_nr, int value) {
   }
 }
 
-void set_gpio_output(void *gpio_ctr, int gpio_nr) {
+void set_gpio_output(void *gpio_ctr, int gpio_nr)
+{
   int reg_id = gpio_nr / 10;
   int pos = gpio_nr % 10;
 
@@ -102,7 +115,8 @@ void set_gpio_output(void *gpio_ctr, int gpio_nr) {
   *fsel_reg = fsel_val;
 }
 
-void set_gpio_input(void *gpio_ctr, int gpio_nr) {
+void set_gpio_input(void *gpio_ctr, int gpio_nr)
+{
   int reg_id = gpio_nr / 10;
   int pos = gpio_nr & 10;
 
@@ -114,7 +128,8 @@ void set_gpio_input(void *gpio_ctr, int gpio_nr) {
   *fsel_reg = fsel_val;
 }
 
-void set_gpio_pullup(void *gpio_ctr, int gpio_nr) {
+void set_gpio_pullup(void *gpio_ctr, int gpio_nr)
+{
   int reg_id = gpio_nr / 32;
   int pos = gpio_nr % 32;
 
@@ -133,7 +148,8 @@ void set_gpio_pullup(void *gpio_ctr, int gpio_nr) {
   *pudclk_reg = 0;
 }
 
-void get_gpio_input_value(void *gpio_ctr, int gpio_nr, int *value) {
+void get_gpio_input_value(void *gpio_ctr, int gpio_nr, int *value)
+{
   int reg_id = gpio_nr / 32;
   int pos = gpio_nr % 32;
 #define GPIO_LEV_OFFSET 0x34
@@ -143,19 +159,22 @@ void get_gpio_input_value(void *gpio_ctr, int gpio_nr, int *value) {
   *value = level ? 1 : 0;
 }
 
-void set_led_red(void *gpio_ctr) {
+void set_led_red(void *gpio_ctr)
+{
   set_gpio_output_value(gpio_ctr, RED, 1);
   set_gpio_output_value(gpio_ctr, GREEN, 0);
   set_gpio_output_value(gpio_ctr, BLUE, 0);
 }
 
-void set_led_green(void *gpio_ctr) {
+void set_led_green(void *gpio_ctr)
+{
   set_gpio_output_value(gpio_ctr, RED, 0);
   set_gpio_output_value(gpio_ctr, GREEN, 1);
   set_gpio_output_value(gpio_ctr, BLUE, 0);
 }
 
-void set_led_blue(void *gpio_ctr) {
+void set_led_blue(void *gpio_ctr)
+{
   set_gpio_output_value(gpio_ctr, RED, 0);
   set_gpio_output_value(gpio_ctr, GREEN, 0);
   set_gpio_output_value(gpio_ctr, BLUE, 1);
