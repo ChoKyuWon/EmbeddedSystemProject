@@ -26,7 +26,7 @@ int main() {
 
   tcflush(fd, TCIFLUSH);
   ret = tcsetattr(fd, TCSANOW, &config);
-  if(ret < 0){
+  if (ret < 0) {
     printf("Configuration error.\n");
     return -1;
   }
@@ -35,8 +35,8 @@ int main() {
   write(fd, w_buf, strlen(w_buf));
 
   char r_buf[256] = {0};
-  while(ret = read(fd, r_buf, 255) >= 0){
-    if(ret){
+  while (ret = read(fd, r_buf, 255) >= 0) {
+    if (ret) {
       printf("Recived %d bytes: %s\n", ret, r_buf);
     }
   }
