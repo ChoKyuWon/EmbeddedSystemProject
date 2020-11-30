@@ -10,6 +10,11 @@ union protocol{
     char data;
 };
 
+struct sensor_data{
+    uint16_t temp;
+    uint16_t hum;
+};
+
 #define CMD 0
 #define ACK 1
 
@@ -21,5 +26,5 @@ union protocol{
 int process(char *cmd);
 int gettmp();
 int gethum();
-void lcd_write(int notion, char* data);
-void led_watchdog();
+void lcd_write(char* data);
+void watchdog();

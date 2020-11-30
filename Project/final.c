@@ -9,11 +9,17 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <time.h>
+#define AM2320_I2C_DEV 0x5C
+
 #include "LCD.h"
 #include "LED.h"
 #include "final.h"
 
 int threshold[3];
+int notation = 0;
 int fdmem, lcd_fd, sensor_fd, bluetooth_fd;
 void *gpio_ctr;
 
@@ -49,6 +55,10 @@ int main() {
     printf("err opening device.\n");
     return -1;
   }
+  if (ioctl(sensor_fd, I2C_SLAVE, AM2320_I2C_DEV) < 0) {
+    printf("err setting i2c slave address\n");
+    return -1;
+  }
 
   // Bluetooth INIT
   int ret;
@@ -80,7 +90,7 @@ int main() {
   pthread_t thread_pool[2];
   int thr_id;
   int status;
-  thr_id = pthread_create(&thread_pool[0], NULL, led_watchdog, NULL);
+  thr_id = pthread_create(&thread_pool[0], NULL, watchdog, NULL);
   char r_buf[256] = {0};
   char cmd[256] = {0};
 
@@ -150,7 +160,8 @@ int process(char *cmdline) {
     break;
 
   case SETLCD:
-    lcd_write(get_header->lcd, &cmdline[1]);
+    notation = get_header->lcd;
+    lcd_write(&cmdline[1]);
     send_header.proto = *get_header;
     send_header.proto.type = ACK;
     write(bluetooth_fd, &send_header.data, 1);
@@ -160,19 +171,63 @@ int process(char *cmdline) {
   return 0;
 }
 
-void led_watchdog() {
-  int tmp = 0;
+void watchdog() {
+  int tmp = 0, hum = 0;
   while (1) {
+    // LED
     tmp = gethum();
+    hum = gethum();
     if (tmp > threshold[0])
       set_led_red(gpio_ctr);
     else if (tmp > threshold[1])
       set_led_green(gpio_ctr);
     else
       set_led_blue(gpio_ctr);
+    
+    // LCD
   }
 }
 
-void lcd_write(int notion, char *data) { return; }
-int gettmp() { return 0; }
-int gethum() { return 0; }
+int getdata(uint8_t addr, struct sensor_data* output) {
+  int res;
+  uint8_t buffer[10] = {0};
+  struct timespec time_before, time_after, time_diff; // step 1: Wakeup
+  while (1) {
+    clock_gettime(CLOCK_MONOTONIC, &time_before);
+    write(sensor_fd, buffer, 1);
+    usleep(800);
+    clock_gettime(CLOCK_MONOTONIC, &time_after);
+    time_diff.tv_sec = time_after.tv_sec - time_before.tv_sec;
+    time_diff.tv_nsec = time_after.tv_nsec - time_before.tv_nsec;
+    long long diff_nsec = time_diff.tv_sec * 1e9 + time_diff.tv_nsec;
+    if (diff_nsec < 3000000)
+      break;
+  }
+  buffer[0] = 0x3;
+  buffer[1] = addr;
+  buffer[2] = 0x4;
+  if ((res = write(sensor_fd, buffer, 3)) != 3) {
+    printf("i2c write failed! %d\n", res);
+  }
+  usleep(1500);
+  if (read(sensor_fd, buffer, 8) != 8) {
+    printf("i2c read failed!\n");
+  }
+  uint16_t hum = buffer[2] << 8 | buffer[3];
+  uint16_t temp = buffer[4] << 8 | buffer[5];
+  output->hum = hum;
+  output->temp = temp;
+}
+void lcd_write(char *data) { return; }
+int gettmp()
+{
+  struct sensor_data p;
+  getdata(0x0, &p);
+  return p.temp;
+}
+int gethum()
+{
+  struct sensor_data p;
+  getdata(0x0, &p);
+  return p.hum;
+}
