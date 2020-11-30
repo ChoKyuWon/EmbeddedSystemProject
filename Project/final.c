@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "LED.h"
 #include "LCD.h"
@@ -21,13 +22,13 @@ int main() {
   fdmem = open("/dev/mem", O_RDWR);
   if (fdmem < 0) {
     printf("Error openning /dev/mem\n");
-    return NULL;
+    return -1;
   }
   void *gpio_ctr =
       mmap(0, 4096, PROT_READ + PROT_WRITE, MAP_SHARED, fdmem, GPIO_BASE);
   if (gpio_ctr == MAP_FAILED) {
     printf("mmap failed\n");
-    return NULL;
+    return -1;
   }
 
   set_gpio_output(gpio_ctr, RED);
@@ -76,6 +77,10 @@ int main() {
   }
   // Bluetooth INIT finish
 
+  pthread_t thread_pool[2];
+  int thr_id;
+  int status;
+  thr_id = pthread_create(&thread_pool[0], NULL, led_watchdog, NULL);
   char r_buf[256] = {0};
   char cmd[256] = {0};
 
@@ -85,7 +90,7 @@ int main() {
       if(strstr("\xde\xad", r_buf) != NULL){
         // Data on flight. so we put r_buf in cmd and clear the r_buf and wait other data.
         int l = 0;
-        while(r_buf[l] != NULL){
+        while(r_buf[l] != 0){
           cmd[index] = r_buf[l];
           index += 1;
           l += 1;
@@ -122,7 +127,7 @@ int process(char *cmdline){
     case GETTMP:
     tmp = gettmp();
     snprintf(buffer, sizeof(buffer), "%d", tmp); // itoa(tmp, buffer, 10);
-    write(bluetooth_fd, send_header.data, 1);
+    write(bluetooth_fd, &send_header.data, 1);
     write(bluetooth_fd, buffer, strlen(buffer));
     write(bluetooth_fd, "\xde\xad", 2);
     break;
@@ -130,16 +135,16 @@ int process(char *cmdline){
     case GETHUM:
     tmp = gethum();
     snprintf(buffer, sizeof(buffer), "%d", tmp);
-    write(bluetooth_fd, send_header.data, 1);
+    write(bluetooth_fd, &send_header.data, 1);
     write(bluetooth_fd, buffer, strlen(buffer));
     write(bluetooth_fd, "\xde\xad", 2);
     break;
 
     case SETLED:
-    write(bluetooth_fd, send_header.data, 1);
+    write(bluetooth_fd, &send_header.data, 1);
     for(int i=0;i<3;i++){
       threshold[i] = cmdline[i+1];
-      write(bluetooth_fd, cmdline[i], 1);
+      write(bluetooth_fd, &cmdline[i], 1);
     }
     write(bluetooth_fd, "\xde\xad", 2);
     break;
@@ -148,11 +153,14 @@ int process(char *cmdline){
     lcd_write(get_header->lcd, &cmdline[1]);
     send_header.proto = *get_header;
     send_header.proto.type = ACK;
-    write(bluetooth_fd, send_header.data, 1);
+    write(bluetooth_fd, &send_header.data, 1);
     write(bluetooth_fd, "\xde\xad", 2);
     break;
   }
+  return 0;
 }
+
+void led_watchdog(){}
 
 void lcd_write(int notion, char* data){
   return;

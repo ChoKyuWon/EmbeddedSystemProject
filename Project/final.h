@@ -22,3 +22,4 @@ int process(char *cmd);
 int gettmp();
 int gethum();
 void lcd_write(int notion, char* data);
+void led_watchdog();
