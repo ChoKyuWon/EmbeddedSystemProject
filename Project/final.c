@@ -160,7 +160,18 @@ int process(char *cmdline){
   return 0;
 }
 
-void led_watchdog(){}
+void led_watchdog(){
+  int tmp = 0;
+  while(1){
+    tmp = gethum();
+    if(tmp > threshold[0])
+      set_led_red(gpio_ctr);
+    else if(tmp > threshold[1])
+      set_led_green(gpio_ctr);
+    else
+      set_led_blue(gpio_ctr);
+  }
+}
 
 void lcd_write(int notion, char* data){
   return;
