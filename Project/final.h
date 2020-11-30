@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 struct _protocol{
     unsigned int type : 1;
     unsigned int cmd : 2;
