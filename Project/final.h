@@ -28,5 +28,6 @@ struct sensor_data{
 int process(char *cmd);
 int gettmp();
 int gethum();
-void lcd_write(char* data);
 void watchdog();
+void print_lcd_status(uint16_t temp, uint16_t hum);
+void print_lcd_string(char* data);

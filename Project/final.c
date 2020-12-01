@@ -161,7 +161,7 @@ int process(char *cmdline) {
 
   case SETLCD:
     notation = get_header->lcd;
-    lcd_write(&cmdline[1]);
+    print_lcd_string(&cmdline[1]);
     send_header.proto = *get_header;
     send_header.proto.type = ACK;
     write(bluetooth_fd, &send_header.data, 1);
@@ -175,7 +175,7 @@ void watchdog() {
   int tmp = 0, hum = 0;
   while (1) {
     // LED
-    tmp = gethum();
+    tmp = gettmp();
     hum = gethum();
     if (tmp > threshold[0])
       set_led_red(gpio_ctr);
@@ -185,6 +185,10 @@ void watchdog() {
       set_led_blue(gpio_ctr);
     
     // LCD
+    print_lcd_status(tmp, hum);
+
+    // sleep
+    sleep(1);
   }
 }
 
@@ -218,7 +222,22 @@ int getdata(uint8_t addr, struct sensor_data* output) {
   output->hum = hum;
   output->temp = temp;
 }
-void lcd_write(char *data) { return; }
+void print_lcd_string(char *data) {
+  write_str(lcd_fd, data, 10, S_PAGES -1);
+}
+void print_lcd_status(uint16_t temp, uint16_t hum){
+  char buffer[256] = {0};
+  char not = 0;
+  if(notation == 0){
+    not = 'C';
+  }
+  else{
+    not ='F';
+  }
+  snprintf(buffer, sizeof(buffer), "%d%c/%d%%", temp, not, hum);
+  write_str(lcd_fd, buffer, 10, S_PAGES + 10);
+}
+
 int gettmp()
 {
   struct sensor_data p;
