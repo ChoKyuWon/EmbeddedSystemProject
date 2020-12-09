@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TestPage</title>
+</head>
+<script src="https://code.jquery.com/jquery-3.5.1.js"
+        integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+        crossorigin="anonymous"></script>
+<script type="text/javascript">
+    (function worker(){
+    $.get('/get_data', function(data){
+        let split_data = data.split('\n');
+        $('#temp').html(split_data[0]);
+        $('#hum').html(split_data[1]);
+        setTimeout(worker, 15000);
+    });
+})();
+</script>
+<script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>
+<body>
+<span id="status"></span>
+<span id="temp">We are finding hydro-thermometer server.</span>
+<span id="hum"> Thanks for your patience!</span>
+<h5>Setting Temp. Unit</h5>
+<form name="settemp">
+    <input type="radio" name="temp_cmd" value="fahrenheit"> Fahrenheit
+    <input type="radio" name="temp_cmd" value="celcius"> Celcius <br>
+    <input type="button" value="Save" onclick="set_temp()">
+</form>
+<h5>Setting LCD Text</h5>
+<form name="setdata">
+    <input type="text" id="lcd_print" name="lcd_print"><br>
+    <input type="button" value="Save" onclick="set_data()">
+</form>
+<h5>Setting LED Threshold</h5>
+<form name="setled">
+    <input type="number" name="red_value" value="red"><br>
+    <input type="number" name="green_value" value="green"><br>
+    <input type="number" name="blue_value" value="blue"><br>
+    <input type="button" value="Save" onclick="set_led()">
+</form>
+</body>
+</html>
