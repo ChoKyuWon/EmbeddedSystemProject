@@ -13,12 +13,13 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #define AM2320_I2C_DEV 0x5C
+#define SSD1306_I2C_DEV 0x3C
 
 #include "LCD.h"
 #include "LED.h"
 #include "final.h"
 
-int threshold[3];
+int threshold[3] = {90, 50, 10};
 int notation = 0;
 int fdmem, lcd_fd, sensor_fd, bluetooth_fd;
 void *gpio_ctr;
@@ -30,7 +31,7 @@ int main() {
     printf("Error openning /dev/mem\n");
     return -1;
   }
-  void *gpio_ctr =
+  gpio_ctr =
       mmap(0, 4096, PROT_READ + PROT_WRITE, MAP_SHARED, fdmem, GPIO_BASE);
   if (gpio_ctr == MAP_FAILED) {
     printf("mmap failed\n");
@@ -47,10 +48,14 @@ int main() {
     printf("err opening device.\n");
     return -1;
   }
+  if (ioctl(lcd_fd, I2C_SLAVE, SSD1306_I2C_DEV) < 0) {
+    printf("err setting i2c slave address\n ");
+    return -1;
+  }
   ssd1306_Init(lcd_fd);
 
   // Second I2C(sensor) INIT
-  sensor_fd = open("/dev/i2c-2", O_RDWR);
+  sensor_fd = open("/dev/i2c-1", O_RDWR);
   if (sensor_fd < 0) {
     printf("err opening device.\n");
     return -1;
@@ -97,7 +102,8 @@ int main() {
   while (1) {
     int index = 0;
     while (ret = read(bluetooth_fd, r_buf, 255) >= 0) {
-      if (strstr("\xde\xad", r_buf) != NULL) {
+      printf("l_buf = %s, cmd = %s\n", r_buf, cmd);
+      if (strstr(r_buf, "\xde\xad") == NULL || index == 0) {
         // Data on flight. so we put r_buf in cmd and clear the r_buf and wait
         // other data.
         int l = 0;
@@ -107,6 +113,13 @@ int main() {
           l += 1;
         }
         memset(r_buf, 0, sizeof(r_buf));
+        if (strstr(cmd, "\xde\xad") != NULL) {
+          cmd[index] = 0;
+          process(cmd);
+          memset(cmd, 0, sizeof(cmd));
+          memset(r_buf, 0, sizeof(r_buf));
+          index = 0;
+        }
       } else {
         // We got finish data. now process cmd and clear the cmd.
         process(cmd);
@@ -121,36 +134,100 @@ int main() {
   close(bluetooth_fd);
 }
 
+// int process(char *cmdline) {
+//   struct _protocol *get_header = (struct _protocol *)&cmdline[0];
+//   union protocol send_header = {0};
+//   char buffer[256];
+//   int tmp = 0;
+
+//   if (get_header->type == ACK) {
+//     return 1;
+//   }
+//   send_header.proto = *get_header;
+//   send_header.proto.type = ACK;
+
+//   switch (get_header->cmd) {
+//   case GETTMP:
+//     tmp = gettmp();
+//     snprintf(buffer, sizeof(buffer), "%d", tmp); // itoa(tmp, buffer, 10);
+//     write(bluetooth_fd, &send_header.data, 1);
+//     write(bluetooth_fd, buffer, strlen(buffer));
+//     write(bluetooth_fd, "\xde\xad", 2);
+//     break;
+
+//   case GETHUM:
+//     tmp = gethum();
+//     snprintf(buffer, sizeof(buffer), "%d", tmp);
+//     write(bluetooth_fd, &send_header.data, 1);
+//     write(bluetooth_fd, buffer, strlen(buffer));
+//     write(bluetooth_fd, "\xde\xad", 2);
+//     break;
+
+//   case SETLED:
+//     write(bluetooth_fd, &send_header.data, 1);
+//     for (int i = 0; i < 3; i++) {
+//       threshold[i] = cmdline[i + 1];
+//       write(bluetooth_fd, &cmdline[i], 1);
+//     }
+//     write(bluetooth_fd, "\xde\xad", 2);
+//     break;
+
+//   case SETLCD:
+//     notation = get_header->lcd;
+//     print_lcd_string(&cmdline[1]);
+//     send_header.proto = *get_header;
+//     send_header.proto.type = ACK;
+//     write(bluetooth_fd, &send_header.data, 1);
+//     write(bluetooth_fd, "\xde\xad", 2);
+//     break;
+//   }
+//   return 0;
+// }
+
 int process(char *cmdline) {
-  struct _protocol *get_header = (struct _protocol *)&cmdline[0];
+  printf("Header: %d\n", cmdline[0]);
+  struct _protocol get_header = ((union protocol)cmdline[0]).proto;
   union protocol send_header = {0};
   char buffer[256];
   int tmp = 0;
 
-  if (get_header->type == ACK) {
+  if (get_header.type == ACK) {
     return 1;
   }
-  send_header.proto = *get_header;
+  send_header.proto = get_header;
   send_header.proto.type = ACK;
+  send_header.proto.lcd = notation;
 
-  switch (get_header->cmd) {
+  printf("get_header: %d\n", get_header);
+  printf("get_header.type: %d ", get_header.type);
+  printf("get_header.cmd: %d ", get_header.cmd);
+  printf("get_header.len: %d ", get_header.len);
+  printf("get_header.lcd: %d\n", get_header.lcd);
+  switch (get_header.cmd) {
   case GETTMP:
+    printf("GET TMP\n");
     tmp = gettmp();
     snprintf(buffer, sizeof(buffer), "%d", tmp); // itoa(tmp, buffer, 10);
+    printf("GETTMP buffer: %s\n", buffer);
+    printf("send_header.data: %c\n", send_header.data);
     write(bluetooth_fd, &send_header.data, 1);
     write(bluetooth_fd, buffer, strlen(buffer));
     write(bluetooth_fd, "\xde\xad", 2);
     break;
 
   case GETHUM:
+    printf("GET HUM\n");
     tmp = gethum();
     snprintf(buffer, sizeof(buffer), "%d", tmp);
+    printf("GETHUM buffer: %s\n", buffer);
+    printf("send_header.data: %c\n", send_header.data);
     write(bluetooth_fd, &send_header.data, 1);
     write(bluetooth_fd, buffer, strlen(buffer));
     write(bluetooth_fd, "\xde\xad", 2);
     break;
 
   case SETLED:
+    printf("SET LED: %d %d %d\n", cmdline[1], cmdline[2], cmdline[3]);
     write(bluetooth_fd, &send_header.data, 1);
     for (int i = 0; i < 3; i++) {
       threshold[i] = cmdline[i + 1];
@@ -160,9 +237,10 @@ int process(char *cmdline) {
     break;
 
   case SETLCD:
-    notation = get_header->lcd;
+    printf("SET LCD: %s\n", &cmdline[1]);
+    notation = get_header.lcd;
     print_lcd_string(&cmdline[1]);
-    send_header.proto = *get_header;
+    send_header.proto = get_header;
     send_header.proto.type = ACK;
     write(bluetooth_fd, &send_header.data, 1);
     write(bluetooth_fd, "\xde\xad", 2);
@@ -172,19 +250,22 @@ int process(char *cmdline) {
 }
 
 void watchdog() {
-  int tmp = 0, hum = 0;
+  int tmp = 0;
+  float hum = 0;
+  // uint8_t *data = (uint8_t *)calloc(0, S_WIDTH * S_PAGES * NUM_FRAMES);
   while (1) {
     // LED
     tmp = gettmp();
-    hum = gethum();
-    if (tmp > threshold[0])
+    hum = (float)gethum() / 10;
+    if (hum > threshold[0])
       set_led_red(gpio_ctr);
-    else if (tmp > threshold[1])
+    else if (hum > threshold[1])
       set_led_green(gpio_ctr);
     else
       set_led_blue(gpio_ctr);
-    
+
     // LCD
+    // update_full(lcd_fd, data);
     print_lcd_status(tmp, hum);
 
     // sleep
@@ -192,7 +273,7 @@ void watchdog() {
   }
 }
 
-int getdata(uint8_t addr, struct sensor_data* output) {
+int getdata(uint8_t addr, struct sensor_data *output) {
   int res;
   uint8_t buffer[10] = {0};
   struct timespec time_before, time_after, time_diff; // step 1: Wakeup
@@ -223,29 +304,33 @@ int getdata(uint8_t addr, struct sensor_data* output) {
   output->temp = temp;
 }
 void print_lcd_string(char *data) {
-  write_str(lcd_fd, data, 10, S_PAGES -1);
-}
-void print_lcd_status(uint16_t temp, uint16_t hum){
   char buffer[256] = {0};
+  write_str(lcd_fd, buffer, 10, S_PAGES - 1);
+
+  write_str(lcd_fd, data, 10, S_PAGES - 1);
+}
+
+void print_lcd_status(uint16_t temp, float hum) {
+  char buffer[256] = {0};
+  write_str(lcd_fd, buffer, 10, S_PAGES + 10);
   char not = 0;
-  if(notation == 0){
+  float t = (float)temp / 10;
+  if (notation == 0) {
     not = 'C';
+  } else {
+    not = 'F';
+    t = c2f(t);
   }
-  else{
-    not ='F';
-  }
-  snprintf(buffer, sizeof(buffer), "%d%c/%d%%", temp, not, hum);
+  snprintf(buffer, sizeof(buffer), "%.1f%c/%.1f%%", t, not, hum);
   write_str(lcd_fd, buffer, 10, S_PAGES + 10);
 }
 
-int gettmp()
-{
+int gettmp() {
   struct sensor_data p;
   getdata(0x0, &p);
   return p.temp;
 }
-int gethum()
-{
+int gethum() {
   struct sensor_data p;
   getdata(0x0, &p);
   return p.hum;

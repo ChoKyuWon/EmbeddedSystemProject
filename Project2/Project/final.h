@@ -32,5 +32,9 @@ int process(char *cmd);
 int gettmp();
 int gethum();
 void watchdog();
-void print_lcd_status(uint16_t temp, uint16_t hum);
+void print_lcd_status(uint16_t temp, float hum);
 void print_lcd_string(char *data);
+
+float c2f(float c){
+    return (float)c/9*5 +32;
+}
