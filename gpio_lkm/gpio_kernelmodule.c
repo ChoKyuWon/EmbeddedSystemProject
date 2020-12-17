@@ -11,7 +11,7 @@
 #include <linux/slab.h>
 #include <linux/smp.h>
 #include <linux/uaccess.h>
-#include <stdint.h>
+// #include <stdint.h>
 
 MODULE_LICENSE("GPL");
 
