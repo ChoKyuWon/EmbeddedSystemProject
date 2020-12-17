@@ -1,13 +1,8 @@
-BUILDROOT_OUTPUT=XXX/buildroot/output
-KERNEL_DIR=$(BUILDROOT_OUTPUT)/build/linux-custom/
-CROSS_COMPILE=$(BUILDROOT_OUTPUT)/host/bin/arm-linuxobj-m+=key.o
+obj-m += gpio_kernelmodule.o
+DIR = $(shell pwd)
+KERNEL_DIR = /lib/modules/$(shell uname -r)/build
 
-all: key app
-
-hello:
-	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C $(KERNEL_DIR) M=`pwd` modules
+all:
+        make -C $(KERNEL_DIR) M=$(DIR) modules
 clean:
-	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C $(KERNEL_DIR) M=`pwd` clean
-
-app: app.c
-	$(CROSS_COMPILE)gcc app.c -o app
+        make -C $(KERNEL_DIR) M=$(DIR) clean
