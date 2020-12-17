@@ -1,0 +1,16 @@
+body {
+    padding-top: 10px;
+    background-color: #c0ff00;
+    }
+    #title {
+    padding: 20px;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    }
+    #contents{
+    padding: 10px;
+    font-size: 15px;
+    text-align: center;
+    background-color: #C0FFC0;
+    }

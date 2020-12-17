@@ -1,0 +1,1 @@
+cmd_/home/pi/Downloads/EmbeddedSystemProject-master/gpio_lkm/gpio_kernelmodule.mod := { echo  /home/pi/Downloads/EmbeddedSystemProject-master/gpio_lkm/gpio_kernelmodule.o; echo; } > /home/pi/Downloads/EmbeddedSystemProject-master/gpio_lkm/gpio_kernelmodule.mod
